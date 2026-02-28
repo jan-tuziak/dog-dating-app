@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Build & test backend
+        working-directory: ./backend/PawMatch.Api
+        run: |
+          dotnet restore
+          dotnet build --no-restore -c Release
+          dotnet test --no-build -c Release --verbosity normal
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+
+      - name: Install dependencies and run frontend tests
+        working-directory: ./frontend
+        run: |
+          npm ci
+          npm test --if-present
+
+      - name: Archive frontend build (optional)
+        if: success()
+        working-directory: ./frontend
+        run: |
+          npm run build
+          tar -czf frontend-dist.tar.gz dist || true
